@@ -21,14 +21,14 @@ This Web UI/UX is built specifically for the **50 Startups Profit Prediction & F
 - **Controls**: Live digital clock, toggleable **CRT Scanline / Glow filter**, and synthesized **8-bit audio sound effects**.
 
 ### 2. Interactive Feature Selection Console (`METHOD_SELECTOR.SYS`)
-- Compare all 6 methods directly against your experiment outcomes:
-  1. **LassoCV (L1 Penalty)** — Selected 3 features: R&D, Admin, Marketing.
-  2. **RFECV (Recursive Elimination)** — Selected 3 features.
-  3. **Forward SFS (Sequential Forward Selection)** — Selected 3 features.
-  4. **ElasticNetCV (L1 + L2)** — Selected 3 features.
-  5. **Exhaustive (All 31 Combinations)** — Exact optimal 3 features.
-  6. **Baseline OLS (Full 5 Features)** — Benchmark with state dummies.
-- **Dynamic LED Flags**: Real-time pixel LEDs switch green/red as you toggle methods to indicate which feature inputs are active.
+- Compare all methods directly against your experiment outcomes:
+  1. **★ Compare 5 Methods (5-Curve Overlay)** — Overlays all 5 algorithmic trajectories simultaneously on the dual charts with custom markers and an evaluation matrix table.
+  2. **LassoCV (L1 Penalty)** — Dynamic progression curve across $k=1 \dots 5$.
+  3. **Forward SFS (Sequential Forward Selection)** — Stepwise greedy forward trajectory.
+  4. **RFECV (Recursive Feature Elimination)** — Backward recursive elimination trajectory.
+  5. **ElasticNetCV (L1 + L2 Penalty)** — Balanced regularization trajectory.
+  6. **Exhaustive Search (All 31 Subsets)** — Global optimal combinatorial subset path.
+- **Dynamic LED Flags**: Real-time pixel LEDs switch green/red as you toggle methods and $k$-values to indicate which feature inputs are active.
 - **Hyperparameter Sliders**: Interactive Train/Test Split (60%–90%) and Cross-Validation folds ($k=3$ to $k=10$).
 
 ### 3. k-Value Selector Tabs & Model Performance Window (`MODEL_PERFORMANCE_MONITOR.EXE`)
@@ -36,15 +36,25 @@ This Web UI/UX is built specifically for the **50 Startups Profit Prediction & F
   - Designed as vintage Windows 95 / media player control buttons with 3D bevels and sound effects.
   - **$k=2$ (★ Optimal Sweet Spot)** highlighted in glowing emerald green with pulsing matrix glow.
   - **$k=5$ (⚠ Full Model / Overfitting Cliff)** tagged with an amber warning style and hazard border.
+  - Clicking any $k$-tab updates active LED flags, recalculates profit in the calculator, and updates the OLS equation.
+- **Dynamic Progression Curves & 5-Method Comparison Overlay**:
+  - **Single Method Mode**: Selecting any method (LassoCV, Forward SFS, RFECV, ElasticNetCV, Exhaustive) renders its specific RMSE & $R^2$ curve with tailored neon color gradients.
+  - **★ Compare 5 Methods Overlay Mode**: Renders all 5 algorithms simultaneously with distinct cyber colors and markers:
+    - `LassoCV`: Neon Cyan (`#00F0FF`, `●`)
+    - `Forward SFS`: Neon Orange (`#FF8C00`, `■`)
+    - `RFECV`: Neon Emerald (`#00FF66`, `▲`)
+    - `ElasticNetCV`: Hot Pink (`#FF007F`, `◆`)
+    - `Exhaustive`: Electric Purple (`#B388FF`, `▼`)
+  - **Performance Comparison Legend Bar**: Displays interactive symbols, method names, and optimal $k$ indicators.
 - **Dual Line Charts**:
   - Side-by-side high-DPI HTML5 canvas charts tracking metric trajectories from $k=1$ to $k=5$:
-    - **RMSE Trend (Lower is Better)**: Pinpoints the global minimum error ($8,198.80) at $k=2$ with glowing emerald star marker, and highlights the overfitting cliff at $k=5$ ($9,137.99).
-    - **R-squared Trend (Higher is Better)**: Displays explanatory power peaking at $R^2 = 0.9474$ at $k=2$.
+    - **RMSE Trend (Lower is Better)**: Highlights sweet spots (e.g. $k=2$ or Exhaustive $k=3$ at $\$8,171.65$) and the overfitting cliff ($k=5$ at $\$9,137.99$).
+    - **R-squared Trend (Higher is Better)**: Displays explanatory power trajectories peaking at $R^2 \approx 0.9474 - 0.9478$.
   - Interactive crosshairs and rich tooltips upon hover or click.
-- **OLS Equation Card**:
-  - Renders the exact fitted regression formula in green-phosphor CRT Terminal font (`VT323` / `Share Tech Mono`) with syntax-highlighted intercept, slopes, and variable tokens:
+- **OLS Equation & Comparison Matrix Card**:
+  - **In Single Method Mode**: Renders the exact fitted regression formula in green-phosphor CRT Terminal font (`VT323` / `Share Tech Mono`) with syntax-highlighted intercept, slopes, and variable tokens:
     $$\text{k=2: Profit} = \$46,346.34 + 0.7886 \times (\text{R\&D}) + 0.0326 \times (\text{Mkt})$$
-  - Dynamic diagnostic telemetry explains why $k=2$ achieves maximum parsimony (Occam's Razor) while $k=5$ captures noise from geographical dummies.
+  - **In Compare 5 Methods Mode**: Renders a multi-algorithm CRT evaluation matrix table comparing all 5 algorithms at the selected $k$, displaying RMSE, $R^2$, features, and status with the winning subset highlighted in emerald green.
   - **⚡ SYNC TO PREDICTOR**: One-click sync button loading any evaluated $k$-subset into the profit predictor.
 
 ### 4. Actual vs. Predicted Profit Scatter & Arcade High Scores

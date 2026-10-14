@@ -81,19 +81,19 @@ const MODELS_DATA = [
     isBest: true
   },
   {
-    id: "Baseline_OLS",
-    name: "Baseline OLS (All 5 Features)",
-    features: ["R&D Spend", "Administration", "Marketing Spend", "State_Florida", "State_New York"],
-    nFeat: 5,
-    cvRmse: 9550.68,
-    mae: 6961.48,
-    rmse: 9055.96,
-    r2: 0.8987,
-    adjR2: 0.7721,
-    intercept: 54028.04,
-    coefs: { "R&D Spend": 0.80563, "Administration": -0.06879, "Marketing Spend": 0.02986, "State_Florida": 938.79, "State_New York": 6.99 },
-    tag: "BENCHMARK",
-    isBest: false
+    id: "Compare_All",
+    name: "★ Compare 5 Methods",
+    features: ["R&D Spend", "Marketing Spend"],
+    nFeat: "ALL (1-5)",
+    cvRmse: 8171.65,
+    mae: 6979.15,
+    rmse: 8171.65,
+    r2: 0.9478,
+    adjR2: 0.9430,
+    intercept: 48524.92,
+    coefs: { "R&D Spend": 0.85194, "Administration": -0.00188, "State_Florida": 404.017 },
+    tag: "5-CURVE OVERLAY",
+    isBest: true
   }
 ];
 
@@ -123,78 +123,73 @@ const TEST_SET = [
   { id: 19, state: "New York", rd: 86419.70, admin: 153514.11, mkt: 0.0, actual: 122776.86 }
 ];
 
-const K_PROGRESSION_DATA = [
-  {
-    k: 1,
-    title: "k=1 : R&D Spend",
-    features: ["R&D Spend"],
-    rmse: 8274.87,
-    r2: 0.9465,
-    intercept: 48416.30,
-    coefs: { "R&D Spend": 0.8516 },
-    isSweetSpot: false,
-    isOverfitCliff: false,
-    label: "⏴ k=1 (R&D Only)",
-    formula: "Profit = $48,416.30 + 0.8516 × (R&D Spend)",
-    insight: "Single-variable baseline: R&D Spend alone captures 94.65% variance, showing exceptional primary correlation."
+const METHOD_PROGRESSIONS_DATA = {
+  LassoCV: {
+    id: "LassoCV",
+    name: "LassoCV (L1 Penalty)",
+    color: "#00f0ff",
+    symbol: "●",
+    items: [
+      { k: 1, title: "LassoCV k=1", features: ["R&D Spend"], rmse: 8274.87, r2: 0.9465, intercept: 48416.30, coefs: { "R&D Spend": 0.85162 }, isSweetSpot: false, isOverfitCliff: false, label: "⏴ k=1 (R&D Only)", formula: "Profit = $48,416.30 + 0.8516 × (R&D Spend)", insight: "Lasso L1 ranking: R&D Spend has highest standardized coefficient (|β|=0.91), explaining 94.65% variance." },
+      { k: 2, title: "LassoCV k=2", features: ["R&D Spend", "Marketing Spend"], rmse: 8198.80, r2: 0.9474, intercept: 46346.34, coefs: { "R&D Spend": 0.78862, "Marketing Spend": 0.03258 }, isSweetSpot: true, isOverfitCliff: false, label: "★ k=2 Optimal Sweet Spot ($8,199)", formula: "Profit = $46,346.34 + 0.7886 × (R&D) + 0.0326 × (Marketing)", insight: "★ OPTIMAL SWEET SPOT: Global minimum RMSE ($8,198.80) & peak test R² (0.9474)." },
+      { k: 3, title: "LassoCV k=3", features: ["R&D Spend", "Marketing Spend", "State_New York"], rmse: 8309.06, r2: 0.9460, intercept: 46100.29, coefs: { "R&D Spend": 0.78587, "Marketing Spend": 0.03327, "State_New York": 864.00 }, isSweetSpot: false, isOverfitCliff: false, label: "▶ k=3 (+ State_NY)", formula: "Profit = $46,100.29 + 0.7859 × (R&D) + 0.0333 × (Mkt) + 864.00 × (NY)", insight: "L1 penalty ranks State_New York 3rd. Test RMSE ticks up slightly to $8,309.06." },
+      { k: 4, title: "LassoCV k=4", features: ["R&D Spend", "Marketing Spend", "State_New York", "State_Florida"], rmse: 8409.92, r2: 0.9447, intercept: 46329.06, coefs: { "R&D Spend": 0.78514, "Marketing Spend": 0.03396, "State_New York": 554.66, "State_Florida": -826.47 }, isSweetSpot: false, isOverfitCliff: false, label: "▶▶ k=4 (+ State_FL)", formula: "Profit = $46,329.06 + 0.7851 × (R&D) + 0.0340 × (Mkt) + 554.66 × (NY) - 826.47 × (FL)", insight: "Adding second state dummy increases variance without predictive gain (RMSE $8,409.92)." },
+      { k: 5, title: "LassoCV k=5", features: ["R&D Spend", "Marketing Spend", "State_New York", "State_Florida", "Administration"], rmse: 9137.99, r2: 0.9347, intercept: 42554.17, coefs: { "R&D Spend": 0.77347, "Administration": 0.03288, "Marketing Spend": 0.03661, "State_Florida": -959.28, "State_New York": 699.37 }, isSweetSpot: false, isOverfitCliff: true, label: "⚠ k=5 Full Model (Overfitting Cliff)", formula: "Profit = $42,554.17 + 0.7735 × (R&D) + 0.0329 × (Admin) + 0.0366 × (Mkt) - 959.28 × (FL) + 699.37 × (NY)", insight: "⚠ OVERFITTING CLIFF: Full 5-variable model achieves highest test RMSE ($9,137.99)." }
+    ]
   },
-  {
-    k: 2,
-    title: "k=2 : Optimal Sweet Spot",
-    features: ["R&D Spend", "Marketing Spend"],
-    rmse: 8198.80,
-    r2: 0.9474,
-    intercept: 46346.34,
-    coefs: { "R&D Spend": 0.7886, "Marketing Spend": 0.0326 },
-    isSweetSpot: true,
-    isOverfitCliff: false,
-    label: "★ k=2 Optimal Sweet Spot (Min RMSE)",
-    formula: "Profit = $46,346.34 + 0.7886 × (R&D Spend) + 0.0326 × (Marketing Spend)",
-    insight: "★ OPTIMAL SWEET SPOT: Minimum test RMSE ($8,198.80) & peak R² (0.9474). Maximum explanatory power without noise."
+  Forward_SFS: {
+    id: "Forward_SFS",
+    name: "Forward SFS (Sequential)",
+    color: "#ff8c00",
+    symbol: "■",
+    items: [
+      { k: 1, title: "Forward SFS k=1", features: ["R&D Spend"], rmse: 8274.87, r2: 0.9465, intercept: 48416.30, coefs: { "R&D Spend": 0.85162 }, isSweetSpot: false, isOverfitCliff: false, label: "⏴ k=1 (R&D Only)", formula: "Profit = $48,416.30 + 0.8516 × (R&D Spend)", insight: "Forward SFS Step 1: Greedily selects R&D Spend as single strongest predictor." },
+      { k: 2, title: "Forward SFS k=2", features: ["R&D Spend", "Marketing Spend"], rmse: 8198.80, r2: 0.9474, intercept: 46346.34, coefs: { "R&D Spend": 0.78862, "Marketing Spend": 0.03258 }, isSweetSpot: true, isOverfitCliff: false, label: "★ k=2 Optimal Sweet Spot ($8,199)", formula: "Profit = $46,346.34 + 0.7886 × (R&D) + 0.0326 × (Marketing)", insight: "★ OPTIMAL SWEET SPOT: Greedily adds Marketing Spend. Minimum test RMSE ($8,198.80)." },
+      { k: 3, title: "Forward SFS k=3", features: ["R&D Spend", "Administration", "Marketing Spend"], rmse: 8803.78, r2: 0.9394, intercept: 42989.01, coefs: { "R&D Spend": 0.77884, "Administration": 0.02939, "Marketing Spend": 0.03471 }, isSweetSpot: false, isOverfitCliff: false, label: "▶ k=3 (Standard 3-Feat)", formula: "Profit = $42,989.01 + 0.7788 × (R&D) + 0.0294 × (Admin) + 0.0347 × (Mkt)", insight: "Adding Administration overhead increases test RMSE by +$604.98 (to $8,803.78)." },
+      { k: 4, title: "Forward SFS k=4", features: ["R&D Spend", "Administration", "Marketing Spend", "State_New York"], rmse: 8997.20, r2: 0.9367, intercept: 42410.31, coefs: { "R&D Spend": 0.77468, "Administration": 0.03183, "Marketing Spend": 0.03573, "State_New York": 1052.22 }, isSweetSpot: false, isOverfitCliff: false, label: "▶▶ k=4 (+ State_NY)", formula: "Profit = $42,410.31 + 0.7747 × (R&D) + 0.0318 × (Admin) + 0.0357 × (Mkt) + 1,052.22 × (NY)", insight: "Greedy Step 4 adds State_NY: Test error climbs to $8,997.20." },
+      { k: 5, title: "Forward SFS k=5", features: ["R&D Spend", "Administration", "Marketing Spend", "State_Florida", "State_New York"], rmse: 9137.99, r2: 0.9347, intercept: 42554.17, coefs: { "R&D Spend": 0.77347, "Administration": 0.03288, "Marketing Spend": 0.03661, "State_Florida": -959.28, "State_New York": 699.37 }, isSweetSpot: false, isOverfitCliff: true, label: "⚠ k=5 Full Model (Overfitting Cliff)", formula: "Profit = $42,554.17 + 0.7735 × (R&D) + 0.0329 × (Admin) + 0.0366 × (Mkt) - 959.28 × (FL) + 699.37 × (NY)", insight: "⚠ OVERFITTING CLIFF: Full 5-variable model achieves highest test RMSE ($9,137.99)." }
+    ]
   },
-  {
-    k: 3,
-    title: "k=3 : Standard 3-Feat",
-    features: ["R&D Spend", "Administration", "Marketing Spend"],
-    rmse: 8803.78,
-    r2: 0.9394,
-    intercept: 42989.01,
-    coefs: { "R&D Spend": 0.7788, "Administration": 0.0294, "Marketing Spend": 0.0347 },
-    isSweetSpot: false,
-    isOverfitCliff: false,
-    label: "▶ k=3 (Standard 3-Feat)",
-    formula: "Profit = $42,989.01 + 0.7788 × (R&D) + 0.0294 × (Admin) + 0.0347 × (Mkt)",
-    insight: "Parsimony degrades: Adding Admin overhead increases test RMSE by +$604.98 (to $8,803.78) with negligible predictive value."
+  RFECV: {
+    id: "RFECV",
+    name: "RFECV (Recursive Elimination)",
+    color: "#00ff66",
+    symbol: "▲",
+    items: [
+      { k: 1, title: "RFECV k=1", features: ["R&D Spend"], rmse: 8274.87, r2: 0.9465, intercept: 48416.30, coefs: { "R&D Spend": 0.85162 }, isSweetSpot: false, isOverfitCliff: false, label: "⏴ k=1 (R&D Only)", formula: "Profit = $48,416.30 + 0.8516 × (R&D Spend)", insight: "RFECV last surviving feature: R&D Spend proves to be the absolute core driver of profit." },
+      { k: 2, title: "RFECV k=2", features: ["R&D Spend", "Marketing Spend"], rmse: 8198.80, r2: 0.9474, intercept: 46346.34, coefs: { "R&D Spend": 0.78862, "Marketing Spend": 0.03258 }, isSweetSpot: true, isOverfitCliff: false, label: "★ k=2 Optimal Sweet Spot ($8,199)", formula: "Profit = $46,346.34 + 0.7886 × (R&D) + 0.0326 × (Marketing)", insight: "★ OPTIMAL SWEET SPOT: Eliminating 3 lowest weight features yields minimum test RMSE ($8,198.80)." },
+      { k: 3, title: "RFECV k=3", features: ["R&D Spend", "Administration", "Marketing Spend"], rmse: 8803.78, r2: 0.9394, intercept: 42989.01, coefs: { "R&D Spend": 0.77884, "Administration": 0.02939, "Marketing Spend": 0.03471 }, isSweetSpot: false, isOverfitCliff: false, label: "▶ k=3 (Standard 3-Feat)", formula: "Profit = $42,989.01 + 0.7788 × (R&D) + 0.0294 × (Admin) + 0.0347 × (Mkt)", insight: "RFECV prunes dummy variables first: 3-feature subset (R&D, Admin, Mkt) has RMSE=$8,803.78." },
+      { k: 4, title: "RFECV k=4", features: ["R&D Spend", "Administration", "Marketing Spend", "State_Florida"], rmse: 9068.54, r2: 0.9357, intercept: 42922.43, coefs: { "R&D Spend": 0.77538, "Administration": 0.03187, "Marketing Spend": 0.03633, "State_Florida": -1272.16 }, isSweetSpot: false, isOverfitCliff: false, label: "▶▶ k=4 (+ State_FL)", formula: "Profit = $42,922.43 + 0.7754 × (R&D) + 0.0319 × (Admin) + 0.0363 × (Mkt) - 1,272.16 × (FL)", insight: "RFECV retains Florida over NY at k=4: Test RMSE is $9,068.54." },
+      { k: 5, title: "RFECV k=5", features: ["R&D Spend", "Administration", "Marketing Spend", "State_Florida", "State_New York"], rmse: 9137.99, r2: 0.9347, intercept: 42554.17, coefs: { "R&D Spend": 0.77347, "Administration": 0.03288, "Marketing Spend": 0.03661, "State_Florida": -959.28, "State_New York": 699.37 }, isSweetSpot: false, isOverfitCliff: true, label: "⚠ k=5 Full Model (Overfitting Cliff)", formula: "Profit = $42,554.17 + 0.7735 × (R&D) + 0.0329 × (Admin) + 0.0366 × (Mkt) - 959.28 × (FL) + 699.37 × (NY)", insight: "⚠ OVERFITTING CLIFF: Full 5-variable model achieves highest test RMSE ($9,137.99)." }
+    ]
   },
-  {
-    k: 4,
-    title: "k=4 : + State_NY",
-    features: ["R&D Spend", "Administration", "Marketing Spend", "State_New York"],
-    rmse: 8997.20,
-    r2: 0.9367,
-    intercept: 42410.31,
-    coefs: { "R&D Spend": 0.7747, "Administration": 0.0318, "Marketing Spend": 0.0357, "State_New York": 1052.22 },
-    isSweetSpot: false,
-    isOverfitCliff: false,
-    label: "▶▶ k=4 (+ State_NY)",
-    formula: "Profit = $42,410.31 + 0.7747 × (R&D) + 0.0318 × (Admin) + 0.0357 × (Mkt) + 1,052.22 × (State_NY)",
-    insight: "Over-parameterization: State dummy has p > 0.05. Test RMSE worsens to $8,997.20 as model fits sample noise."
+  ElasticNetCV: {
+    id: "ElasticNetCV",
+    name: "ElasticNetCV (L1 + L2)",
+    color: "#ff007f",
+    symbol: "◆",
+    items: [
+      { k: 1, title: "ElasticNetCV k=1", features: ["R&D Spend"], rmse: 8274.87, r2: 0.9465, intercept: 48416.30, coefs: { "R&D Spend": 0.85162 }, isSweetSpot: false, isOverfitCliff: false, label: "⏴ k=1 (R&D Only)", formula: "Profit = $48,416.30 + 0.8516 × (R&D Spend)", insight: "ElasticNetCV L1+L2 regularization: R&D Spend receives highest net weight, capturing 94.65% variance." },
+      { k: 2, title: "ElasticNetCV k=2", features: ["R&D Spend", "Marketing Spend"], rmse: 8198.80, r2: 0.9474, intercept: 46346.34, coefs: { "R&D Spend": 0.78862, "Marketing Spend": 0.03258 }, isSweetSpot: true, isOverfitCliff: false, label: "★ k=2 Optimal Sweet Spot ($8,199)", formula: "Profit = $46,346.34 + 0.7886 × (R&D) + 0.0326 × (Marketing)", insight: "★ OPTIMAL SWEET SPOT: Top 2 regularized features produce minimum test RMSE ($8,198.80)." },
+      { k: 3, title: "ElasticNetCV k=3", features: ["R&D Spend", "Marketing Spend", "Administration"], rmse: 8803.78, r2: 0.9394, intercept: 42989.01, coefs: { "R&D Spend": 0.77884, "Administration": 0.02939, "Marketing Spend": 0.03471 }, isSweetSpot: false, isOverfitCliff: false, label: "▶ k=3 (Standard 3-Feat)", formula: "Profit = $42,989.01 + 0.7788 × (R&D) + 0.0294 × (Admin) + 0.0347 × (Mkt)", insight: "Administration ranks 3rd in ElasticNet weights. Test RMSE rises to $8,803.78." },
+      { k: 4, title: "ElasticNetCV k=4", features: ["R&D Spend", "Marketing Spend", "Administration", "State_New York"], rmse: 8997.20, r2: 0.9367, intercept: 42410.31, coefs: { "R&D Spend": 0.77468, "Administration": 0.03183, "Marketing Spend": 0.03573, "State_New York": 1052.22 }, isSweetSpot: false, isOverfitCliff: false, label: "▶▶ k=4 (+ State_NY)", formula: "Profit = $42,410.31 + 0.7747 × (R&D) + 0.0318 × (Admin) + 0.0357 × (Mkt) + 1,052.22 × (NY)", insight: "State_NY ranks 4th under ElasticNet. Test RMSE increases to $8,997.20." },
+      { k: 5, title: "ElasticNetCV k=5", features: ["R&D Spend", "Marketing Spend", "Administration", "State_New York", "State_Florida"], rmse: 9137.99, r2: 0.9347, intercept: 42554.17, coefs: { "R&D Spend": 0.77347, "Administration": 0.03288, "Marketing Spend": 0.03661, "State_Florida": -959.28, "State_New York": 699.37 }, isSweetSpot: false, isOverfitCliff: true, label: "⚠ k=5 Full Model (Overfitting Cliff)", formula: "Profit = $42,554.17 + 0.7735 × (R&D) + 0.0329 × (Admin) + 0.0366 × (Mkt) - 959.28 × (FL) + 699.37 × (NY)", insight: "⚠ OVERFITTING CLIFF: Full 5-variable model achieves highest test RMSE ($9,137.99)." }
+    ]
   },
-  {
-    k: 5,
-    title: "k=5 : Full Model",
-    features: ["R&D Spend", "Administration", "Marketing Spend", "State_Florida", "State_New York"],
-    rmse: 9137.99,
-    r2: 0.9347,
-    intercept: 42554.17,
-    coefs: { "R&D Spend": 0.7735, "Administration": 0.0329, "Marketing Spend": 0.0366, "State_Florida": -959.28, "State_New York": 699.37 },
-    isSweetSpot: false,
-    isOverfitCliff: true,
-    label: "⚠ k=5 Full Model (Overfitting Cliff)",
-    formula: "Profit = $42,554.17 + 0.7735 × (R&D) + 0.0329 × (Admin) + 0.0366 × (Mkt) - 959.28 × (State_FL) + 699.37 × (State_NY)",
-    insight: "⚠ OVERFITTING CLIFF: Full model produces highest RMSE ($9,137.99) and lowest R² (0.9347). Redundant dummy variables."
+  Exhaustive: {
+    id: "Exhaustive",
+    name: "Exhaustive (31 Combos)",
+    color: "#b388ff",
+    symbol: "▼",
+    items: [
+      { k: 1, title: "Exhaustive k=1", features: ["R&D Spend"], rmse: 8274.87, r2: 0.9465, intercept: 48416.30, coefs: { "R&D Spend": 0.85162 }, isSweetSpot: false, isOverfitCliff: false, label: "⏴ k=1 (R&D Only)", formula: "Profit = $48,416.30 + 0.8516 × (R&D Spend)", insight: "Best 1-feature combo out of 5: R&D Spend alone achieves RMSE=$8,274.87." },
+      { k: 2, title: "Exhaustive k=2", features: ["R&D Spend", "Marketing Spend"], rmse: 8198.80, r2: 0.9474, intercept: 46346.34, coefs: { "R&D Spend": 0.78862, "Marketing Spend": 0.03258 }, isSweetSpot: false, isOverfitCliff: false, label: "▶ k=2 (R&D + Mkt)", formula: "Profit = $46,346.34 + 0.7886 × (R&D) + 0.0326 × (Marketing)", insight: "Best 2-feature combo out of 10: R&D + Marketing achieves RMSE=$8,198.80." },
+      { k: 3, title: "Exhaustive k=3", features: ["R&D Spend", "Administration", "State_Florida"], rmse: 8171.65, r2: 0.9478, intercept: 48524.92, coefs: { "R&D Spend": 0.85194, "Administration": -0.00188, "State_Florida": 404.02 }, isSweetSpot: true, isOverfitCliff: false, label: "★ k=3 Optimal Sweet Spot ($8,172)", formula: "Profit = $48,524.92 + 0.8519 × (R&D) - 0.0019 × (Admin) + 404.02 × (FL)", insight: "★ GLOBAL SWEET SPOT: Exhaustive search evaluated all 10 3-feature subsets and uncovered [R&D, Admin, FL] with absolute minimum RMSE ($8,171.65)!" },
+      { k: 4, title: "Exhaustive k=4", features: ["R&D Spend", "Administration", "State_Florida", "State_New York"], rmse: 8178.37, r2: 0.9477, intercept: 48444.53, coefs: { "R&D Spend": 0.85161, "Administration": -0.00170, "State_Florida": 484.73, "State_New York": 173.20 }, isSweetSpot: false, isOverfitCliff: false, label: "▶▶ k=4 (Best 4-Feat $8,178)", formula: "Profit = $48,444.53 + 0.8516 × (R&D) - 0.0017 × (Admin) + 484.73 × (FL) + 173.20 × (NY)", insight: "Best 4-feature combo out of 5: [R&D, Admin, State_FL, State_NY] maintains exceptional test RMSE ($8,178.37)." },
+      { k: 5, title: "Exhaustive k=5", features: ["R&D Spend", "Administration", "Marketing Spend", "State_Florida", "State_New York"], rmse: 9137.99, r2: 0.9347, intercept: 42554.17, coefs: { "R&D Spend": 0.77347, "Administration": 0.03288, "Marketing Spend": 0.03661, "State_Florida": -959.28, "State_New York": 699.37 }, isSweetSpot: false, isOverfitCliff: true, label: "⚠ k=5 Full Model (Overfitting Cliff)", formula: "Profit = $42,554.17 + 0.7735 × (R&D) + 0.0329 × (Admin) + 0.0366 × (Mkt) - 959.28 × (FL) + 699.37 × (NY)", insight: "⚠ OVERFITTING CLIFF: Full 5-variable model achieves highest test RMSE ($9,137.99)." }
+    ]
   }
-];
+};
 
 export default function RetroStartupLab() {
   const [selectedModel, setSelectedModel] = useState(MODELS_DATA[0]);
@@ -256,14 +251,45 @@ export default function RetroStartupLab() {
     setPredictedProfit(pred);
   };
 
+  const currentMethodKey = selectedModel.id.startsWith('Compare_All') ? 'Compare_All' : (METHOD_PROGRESSIONS_DATA[selectedModel.id.split('_k')[0]] ? selectedModel.id.split('_k')[0] : 'Forward_SFS');
+  const activeMethodProgression = currentMethodKey !== 'Compare_All' ? METHOD_PROGRESSIONS_DATA[currentMethodKey].items : METHOD_PROGRESSIONS_DATA['Forward_SFS'].items;
+
   const handleSelectK = (k) => {
     setSelectedK(k);
-    const kData = K_PROGRESSION_DATA.find(d => d.k === k);
+
+    if (currentMethodKey === 'Compare_All') {
+      playSfx(500);
+      let bestM = 'LassoCV';
+      let bestR = 999999;
+      ['LassoCV', 'Forward_SFS', 'RFECV', 'ElasticNetCV', 'Exhaustive'].forEach(mk => {
+        const it = METHOD_PROGRESSIONS_DATA[mk].items.find(p => p.k === k);
+        if (it && it.rmse < bestR) { bestR = it.rmse; bestM = mk; }
+      });
+      const bestItem = METHOD_PROGRESSIONS_DATA[bestM].items.find(p => p.k === k);
+      setSelectedModel({
+        id: `Compare_All_k${k}`,
+        name: `★ Compare 5 Methods (Top at k=${k}: ${METHOD_PROGRESSIONS_DATA[bestM].name})`,
+        features: bestItem.features,
+        nFeat: bestItem.k,
+        cvRmse: bestItem.rmse,
+        mae: 6979.15,
+        rmse: bestItem.rmse,
+        r2: bestItem.r2,
+        adjR2: bestItem.r2 - 0.05,
+        intercept: bestItem.intercept,
+        coefs: bestItem.coefs,
+        tag: "5-CURVE OVERLAY",
+        isBest: bestItem.isSweetSpot
+      });
+      return;
+    }
+
+    const kData = activeMethodProgression.find(d => d.k === k);
     if (!kData) return;
     playSfx(kData.isSweetSpot ? 880 : (kData.isOverfitCliff ? 220 : 500));
     const newModel = {
-      id: `Forward_SFS_k${kData.k}`,
-      name: `Forward SFS (k=${kData.k})`,
+      id: `${currentMethodKey}_k${kData.k}`,
+      name: `${METHOD_PROGRESSIONS_DATA[currentMethodKey].name} (k=${kData.k})`,
       features: kData.features,
       nFeat: kData.k,
       cvRmse: kData.rmse,
@@ -272,13 +298,7 @@ export default function RetroStartupLab() {
       r2: kData.r2,
       adjR2: kData.r2 - 0.05,
       intercept: kData.intercept,
-      coefs: {
-        "R&D Spend": kData.coefs["R&D Spend"] || 0,
-        "Administration": kData.coefs["Administration"] || 0,
-        "Marketing Spend": kData.coefs["Marketing Spend"] || 0,
-        "State_Florida": kData.coefs["State_Florida"] || 0,
-        "State_New York": kData.coefs["State_New York"] || 0
-      },
+      coefs: kData.coefs,
       tag: kData.isSweetSpot ? "SWEET SPOT" : (kData.isOverfitCliff ? "CLIFF" : `k=${kData.k}`),
       isBest: kData.isSweetSpot
     };
@@ -315,10 +335,10 @@ export default function RetroStartupLab() {
 
     // Data points
     TEST_SET.forEach(pt => {
-      const c = selectedModel.coefs;
-      let pred = selectedModel.intercept + (c["R&D Spend"] * pt.rd) + (c["Administration"] * pt.admin) + (c["Marketing Spend"] * pt.mkt);
-      if (selectedModel.features.includes("State_Florida") && pt.state === "Florida") pred += c["State_Florida"];
-      if (selectedModel.features.includes("State_New York") && pt.state === "New York") pred += c["State_New York"];
+      const c = selectedModel.coefs || {};
+      let pred = (selectedModel.intercept || 0) + ((c["R&D Spend"] || 0) * pt.rd) + ((c["Administration"] || 0) * pt.admin) + ((c["Marketing Spend"] || 0) * pt.mkt);
+      if (selectedModel.features.includes("State_Florida") && pt.state === "Florida") pred += c["State_Florida"] || 0;
+      if (selectedModel.features.includes("State_New York") && pt.state === "New York") pred += c["State_New York"] || 0;
 
       const cx = toX(pt.actual / 1000);
       const cy = toY(pred / 1000);
@@ -333,8 +353,11 @@ export default function RetroStartupLab() {
     });
   }, [selectedModel]);
 
-  // Draw Dual Line Charts for Forward SFS Progression
+  // Draw Dual Line Charts for Single Method or 5-Curve Comparison
   useEffect(() => {
+    const isCompare = currentMethodKey === 'Compare_All';
+    const methodKeys = ['LassoCV', 'Forward_SFS', 'RFECV', 'ElasticNetCV', 'Exhaustive'];
+
     // 1. RMSE Chart
     const rmseCanvas = rmseCanvasRef.current;
     if (rmseCanvas) {
@@ -366,50 +389,76 @@ export default function RetroStartupLab() {
         ctx.fillText(`k=${k}`, x - 8, h - 8);
       }
 
-      // Line
-      ctx.strokeStyle = '#00f0ff';
-      ctx.lineWidth = 2;
-      ctx.shadowColor = '#00f0ff';
-      ctx.shadowBlur = 6;
-      ctx.beginPath();
-      ctx.moveTo(toX(1), toY(K_PROGRESSION_DATA[0].rmse));
-      K_PROGRESSION_DATA.forEach(d => ctx.lineTo(toX(d.k), toY(d.rmse)));
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-
-      // Nodes
-      K_PROGRESSION_DATA.forEach(d => {
-        const cx = toX(d.k);
-        const cy = toY(d.rmse);
-        if (d.isSweetSpot) {
-          ctx.fillStyle = '#00ff88';
-          ctx.shadowColor = '#00ff88';
-          ctx.shadowBlur = 12;
-          ctx.beginPath();
-          ctx.arc(cx, cy, 6, 0, Math.PI * 2);
-          ctx.fill();
-        } else if (d.isOverfitCliff) {
-          ctx.fillStyle = '#fbbf24';
-          ctx.shadowColor = '#f59e0b';
-          ctx.shadowBlur = 10;
-          ctx.beginPath();
-          ctx.arc(cx, cy, 5, 0, Math.PI * 2);
-          ctx.fill();
-        } else {
-          ctx.fillStyle = '#00f0ff';
-          ctx.beginPath();
-          ctx.arc(cx, cy, 4, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        ctx.shadowBlur = 0;
-        if (d.k === selectedK) {
-          ctx.strokeStyle = '#ffff00';
+      if (isCompare) {
+        // Draw all 5 curves
+        methodKeys.forEach(mk => {
+          const mData = METHOD_PROGRESSIONS_DATA[mk];
+          ctx.strokeStyle = mData.color;
           ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.arc(cx, cy, 9, 0, Math.PI * 2);
+          ctx.moveTo(toX(1), toY(mData.items[0].rmse));
+          mData.items.forEach(d => ctx.lineTo(toX(d.k), toY(d.rmse)));
           ctx.stroke();
-        }
-      });
+
+          mData.items.forEach(d => {
+            const cx = toX(d.k);
+            const cy = toY(d.rmse);
+            ctx.fillStyle = mData.color;
+            ctx.beginPath();
+            ctx.arc(cx, cy, d.k === selectedK ? 5.5 : 4, 0, Math.PI * 2);
+            ctx.fill();
+            if (d.k === selectedK) {
+              ctx.strokeStyle = '#ffff00';
+              ctx.lineWidth = 1.5;
+              ctx.beginPath();
+              ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+              ctx.stroke();
+            }
+          });
+        });
+      } else {
+        // Draw single method curve
+        const mData = METHOD_PROGRESSIONS_DATA[currentMethodKey] || METHOD_PROGRESSIONS_DATA['Forward_SFS'];
+        ctx.strokeStyle = mData.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(toX(1), toY(mData.items[0].rmse));
+        mData.items.forEach(d => ctx.lineTo(toX(d.k), toY(d.rmse)));
+        ctx.stroke();
+
+        mData.items.forEach(d => {
+          const cx = toX(d.k);
+          const cy = toY(d.rmse);
+          if (d.isSweetSpot) {
+            ctx.fillStyle = '#00ff88';
+            ctx.shadowColor = '#00ff88';
+            ctx.shadowBlur = 12;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (d.isOverfitCliff) {
+            ctx.fillStyle = '#fbbf24';
+            ctx.shadowColor = '#f59e0b';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+            ctx.fill();
+          } else {
+            ctx.fillStyle = mData.color;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.shadowBlur = 0;
+          if (d.k === selectedK) {
+            ctx.strokeStyle = '#ffff00';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 9, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        });
+      }
     }
 
     // 2. R2 Chart
@@ -443,52 +492,78 @@ export default function RetroStartupLab() {
         ctx.fillText(`k=${k}`, x - 8, h - 8);
       }
 
-      // Line
-      ctx.strokeStyle = '#ff007f';
-      ctx.lineWidth = 2;
-      ctx.shadowColor = '#ff007f';
-      ctx.shadowBlur = 6;
-      ctx.beginPath();
-      ctx.moveTo(toX(1), toY(K_PROGRESSION_DATA[0].r2));
-      K_PROGRESSION_DATA.forEach(d => ctx.lineTo(toX(d.k), toY(d.r2)));
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-
-      // Nodes
-      K_PROGRESSION_DATA.forEach(d => {
-        const cx = toX(d.k);
-        const cy = toY(d.r2);
-        if (d.isSweetSpot) {
-          ctx.fillStyle = '#00ff88';
-          ctx.shadowColor = '#00ff88';
-          ctx.shadowBlur = 12;
-          ctx.beginPath();
-          ctx.arc(cx, cy, 6, 0, Math.PI * 2);
-          ctx.fill();
-        } else if (d.isOverfitCliff) {
-          ctx.fillStyle = '#fbbf24';
-          ctx.shadowColor = '#f59e0b';
-          ctx.shadowBlur = 10;
-          ctx.beginPath();
-          ctx.arc(cx, cy, 5, 0, Math.PI * 2);
-          ctx.fill();
-        } else {
-          ctx.fillStyle = '#ff007f';
-          ctx.beginPath();
-          ctx.arc(cx, cy, 4, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        ctx.shadowBlur = 0;
-        if (d.k === selectedK) {
-          ctx.strokeStyle = '#ffff00';
+      if (isCompare) {
+        // Draw all 5 curves
+        methodKeys.forEach(mk => {
+          const mData = METHOD_PROGRESSIONS_DATA[mk];
+          ctx.strokeStyle = mData.color;
           ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.arc(cx, cy, 9, 0, Math.PI * 2);
+          ctx.moveTo(toX(1), toY(mData.items[0].r2));
+          mData.items.forEach(d => ctx.lineTo(toX(d.k), toY(d.r2)));
           ctx.stroke();
-        }
-      });
+
+          mData.items.forEach(d => {
+            const cx = toX(d.k);
+            const cy = toY(d.r2);
+            ctx.fillStyle = mData.color;
+            ctx.beginPath();
+            ctx.arc(cx, cy, d.k === selectedK ? 5.5 : 4, 0, Math.PI * 2);
+            ctx.fill();
+            if (d.k === selectedK) {
+              ctx.strokeStyle = '#ffff00';
+              ctx.lineWidth = 1.5;
+              ctx.beginPath();
+              ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+              ctx.stroke();
+            }
+          });
+        });
+      } else {
+        // Draw single method curve
+        const mData = METHOD_PROGRESSIONS_DATA[currentMethodKey] || METHOD_PROGRESSIONS_DATA['Forward_SFS'];
+        ctx.strokeStyle = mData.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(toX(1), toY(mData.items[0].r2));
+        mData.items.forEach(d => ctx.lineTo(toX(d.k), toY(d.r2)));
+        ctx.stroke();
+
+        mData.items.forEach(d => {
+          const cx = toX(d.k);
+          const cy = toY(d.r2);
+          if (d.isSweetSpot) {
+            ctx.fillStyle = '#00ff88';
+            ctx.shadowColor = '#00ff88';
+            ctx.shadowBlur = 12;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (d.isOverfitCliff) {
+            ctx.fillStyle = '#fbbf24';
+            ctx.shadowColor = '#f59e0b';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+            ctx.fill();
+          } else {
+            ctx.fillStyle = mData.color;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.shadowBlur = 0;
+          if (d.k === selectedK) {
+            ctx.strokeStyle = '#ffff00';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 9, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        });
+      }
     }
-  }, [selectedK]);
+  }, [selectedK, selectedModel, currentMethodKey]);
 
   return (
     <div className="min-h-screen bg-[#07090f] text-slate-100 font-mono relative p-4 sm:p-6 overflow-x-hidden">
@@ -629,7 +704,7 @@ export default function RetroStartupLab() {
           {/* MODEL PERFORMANCE WINDOW (Dual Line Charts & OLS Equation Card) */}
           <div className="bg-[#c0c4ce] text-black border-t-2 border-l-2 border-white border-r-2 border-b-2 border-[#404040] shadow-[4px_4px_0px_#000]">
             <div className="bg-gradient-to-r from-[#0f2c42] via-[#086972] to-[#00a896] text-white px-2 py-1 text-xs font-bold flex justify-between items-center">
-              <span>📊 MODEL_PERFORMANCE_MONITOR.EXE // Forward SFS Progression (k = 1...5)</span>
+              <span>📊 MODEL_PERFORMANCE_MONITOR.EXE // {currentMethodKey === 'Compare_All' ? '5-Method Comparative Overlay (k = 1...5)' : `${METHOD_PROGRESSIONS_DATA[currentMethodKey].name} Progression (k = 1...5)`}</span>
               <div className="flex gap-1">
                 <span className="w-3 h-3 bg-slate-300 text-black text-[9px] text-center leading-3 border border-white">_</span>
                 <span className="w-3 h-3 bg-slate-300 text-black text-[9px] text-center leading-3 border border-white">&times;</span>
@@ -642,67 +717,136 @@ export default function RetroStartupLab() {
               <div className="bg-[#141926] border border-slate-700 p-2 flex flex-wrap items-center gap-2">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mr-1">⏵ K-SELECTOR:</span>
                 <div className="flex flex-wrap gap-2 flex-1">
-                  {K_PROGRESSION_DATA.map(d => {
-                    const isSelected = d.k === selectedK;
-                    let btnStyle = "border-t-2 border-l-2 border-r-2 border-b-2 px-2.5 py-1.5 text-[10px] font-bold cursor-pointer transition-all flex items-center gap-1.5 shadow-[1px_1px_0px_#000] ";
-                    if (d.isSweetSpot) {
-                      btnStyle += isSelected 
-                        ? "bg-[#032010] text-white border-[#00ff88] shadow-[inset_0_0_10px_#00ff88,0_0_15px_#00ff88]" 
-                        : "bg-gradient-to-b from-[#093b1d] to-[#041c0e] text-[#00ff88] border-[#00ff88] shadow-[0_0_10px_rgba(0,255,102,0.4)] hover:brightness-125";
-                    } else if (d.isOverfitCliff) {
-                      btnStyle += isSelected
-                        ? "bg-[#200d02] text-white border-[#f59e0b] shadow-[inset_0_0_10px_#f59e0b,0_0_15px_#f59e0b]"
-                        : "bg-gradient-to-b from-[#442207] to-[#291202] text-[#fbbf24] border-[#f59e0b] shadow-[0_0_8px_rgba(245,158,11,0.35)] hover:brightness-125";
-                    } else {
-                      btnStyle += isSelected
-                        ? "bg-[#a2a6b2] text-black border-slate-700 translate-x-[1px] translate-y-[1px] shadow-none"
-                        : "bg-[#c0c4ce] text-black border-white border-r-[#404040] border-b-[#404040] hover:bg-[#d5d9e4]";
-                    }
-                    return (
-                      <button
-                        key={d.k}
-                        onClick={() => handleSelectK(d.k)}
-                        className={btnStyle}
-                      >
-                        {d.label}
-                      </button>
-                    );
-                  })}
+                  {currentMethodKey === 'Compare_All' ? (
+                    [
+                      { k: 1, label: "⏴ k=1 All Converge ($8,275)", isSweetSpot: false, isOverfitCliff: false },
+                      { k: 2, label: "★ k=2 All Converge ($8,199)", isSweetSpot: true, isOverfitCliff: false },
+                      { k: 3, label: "★ k=3 Exhaustive Peak ($8,172)", isSweetSpot: true, isOverfitCliff: false },
+                      { k: 4, label: "▶▶ k=4 Divergence ($8,178 - $9,069)", isSweetSpot: false, isOverfitCliff: false },
+                      { k: 5, label: "⚠ k=5 All Overfit Cliff ($9,138)", isSweetSpot: false, isOverfitCliff: true }
+                    ].map(d => {
+                      const isSelected = d.k === selectedK;
+                      let btnStyle = "border-t-2 border-l-2 border-r-2 border-b-2 px-2.5 py-1.5 text-[10px] font-bold cursor-pointer transition-all flex items-center gap-1.5 shadow-[1px_1px_0px_#000] ";
+                      if (d.isSweetSpot) {
+                        btnStyle += isSelected ? "bg-[#032010] text-white border-[#00ff88] shadow-[inset_0_0_10px_#00ff88,0_0_15px_#00ff88]" : "bg-gradient-to-b from-[#093b1d] to-[#041c0e] text-[#00ff88] border-[#00ff88] hover:brightness-125";
+                      } else if (d.isOverfitCliff) {
+                        btnStyle += isSelected ? "bg-[#200d02] text-white border-[#f59e0b] shadow-[inset_0_0_10px_#f59e0b,0_0_15px_#f59e0b]" : "bg-gradient-to-b from-[#442207] to-[#291202] text-[#fbbf24] border-[#f59e0b] hover:brightness-125";
+                      } else {
+                        btnStyle += isSelected ? "bg-[#a2a6b2] text-black border-slate-700 translate-x-[1px] translate-y-[1px]" : "bg-[#c0c4ce] text-black border-white border-r-[#404040] border-b-[#404040] hover:bg-[#d5d9e4]";
+                      }
+                      return (
+                        <button key={d.k} onClick={() => handleSelectK(d.k)} className={btnStyle}>
+                          {d.label}
+                        </button>
+                      );
+                    })
+                  ) : (
+                    activeMethodProgression.map(d => {
+                      const isSelected = d.k === selectedK;
+                      let btnStyle = "border-t-2 border-l-2 border-r-2 border-b-2 px-2.5 py-1.5 text-[10px] font-bold cursor-pointer transition-all flex items-center gap-1.5 shadow-[1px_1px_0px_#000] ";
+                      if (d.isSweetSpot) {
+                        btnStyle += isSelected 
+                          ? "bg-[#032010] text-white border-[#00ff88] shadow-[inset_0_0_10px_#00ff88,0_0_15px_#00ff88]" 
+                          : "bg-gradient-to-b from-[#093b1d] to-[#041c0e] text-[#00ff88] border-[#00ff88] shadow-[0_0_10px_rgba(0,255,102,0.4)] hover:brightness-125";
+                      } else if (d.isOverfitCliff) {
+                        btnStyle += isSelected
+                          ? "bg-[#200d02] text-white border-[#f59e0b] shadow-[inset_0_0_10px_#f59e0b,0_0_15px_#f59e0b]"
+                          : "bg-gradient-to-b from-[#442207] to-[#291202] text-[#fbbf24] border-[#f59e0b] shadow-[0_0_8px_rgba(245,158,11,0.35)] hover:brightness-125";
+                      } else {
+                        btnStyle += isSelected
+                          ? "bg-[#a2a6b2] text-black border-slate-700 translate-x-[1px] translate-y-[1px] shadow-none"
+                          : "bg-[#c0c4ce] text-black border-white border-r-[#404040] border-b-[#404040] hover:bg-[#d5d9e4]";
+                      }
+                      return (
+                        <button key={d.k} onClick={() => handleSelectK(d.k)} className={btnStyle}>
+                          {d.label}
+                        </button>
+                      );
+                    })
+                  )}
                 </div>
               </div>
+
+              {/* 5-Method Comparison Legend (Active in Compare Mode) */}
+              {currentMethodKey === 'Compare_All' && (
+                <div className="flex flex-wrap items-center justify-center gap-3 bg-[#070a14] border border-slate-800 p-1.5 text-[10px]">
+                  <span className="text-slate-400 font-bold uppercase">5 ALGORITHMS:</span>
+                  <span className="text-[#00f0ff]">● LassoCV</span>
+                  <span className="text-[#ff8c00]">■ Forward SFS</span>
+                  <span className="text-[#00ff66]">▲ RFECV</span>
+                  <span className="text-[#ff007f]">◆ ElasticNet</span>
+                  <span className="text-[#b388ff]">▼ Exhaustive</span>
+                </div>
+              )}
 
               {/* Dual Line Charts */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {/* RMSE Chart */}
                 <div className="bg-[#080b13] border border-slate-800 p-2.5 flex flex-col">
                   <div className="flex justify-between items-center text-xs mb-1">
-                    <span className="text-cyan-400 font-bold">RMSE TREND (k=1..5)</span>
+                    <span className="text-cyan-400 font-bold">{currentMethodKey === 'Compare_All' ? 'RMSE: 5-METHOD OVERLAY' : 'RMSE TREND (k=1..5)'}</span>
                     <span className="text-[9px] bg-cyan-950 text-cyan-300 border border-cyan-500/50 px-1 rounded">LOWER IS BETTER</span>
                   </div>
                   <canvas ref={rmseCanvasRef} width={340} height={180} className="w-full h-auto bg-[#05070e] border border-slate-900" />
                   <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-                    <span className="text-emerald-400">★ k=2: Min RMSE ($8,199)</span>
-                    <span className="text-amber-400">⚠ k=5: Cliff ($9,138)</span>
+                    <span className="text-emerald-400">{currentMethodKey === 'Compare_All' ? '▼ Exhaustive k=3: $8,172' : '★ Sweet Spot: Min RMSE'}</span>
+                    <span className="text-amber-400">⚠ All k=5: Cliff ($9,138)</span>
                   </div>
                 </div>
 
                 {/* R-squared Chart */}
                 <div className="bg-[#080b13] border border-slate-800 p-2.5 flex flex-col">
                   <div className="flex justify-between items-center text-xs mb-1">
-                    <span className="text-[#ccff00] font-bold">R-SQUARED TREND (k=1..5)</span>
+                    <span className="text-[#ccff00] font-bold">{currentMethodKey === 'Compare_All' ? 'R²: 5-METHOD OVERLAY' : 'R-SQUARED TREND (k=1..5)'}</span>
                     <span className="text-[9px] bg-yellow-950 text-yellow-300 border border-yellow-500/50 px-1 rounded">HIGHER IS BETTER</span>
                   </div>
                   <canvas ref={r2CanvasRef} width={340} height={180} className="w-full h-auto bg-[#05070e] border border-slate-900" />
                   <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-                    <span className="text-emerald-400">★ k=2: Peak R² (0.9474)</span>
-                    <span className="text-amber-400">⚠ k=5: Drop (0.9347)</span>
+                    <span className="text-emerald-400">{currentMethodKey === 'Compare_All' ? '▼ Exhaustive k=3: 0.9478' : '★ Sweet Spot: Peak R²'}</span>
+                    <span className="text-amber-400">⚠ All k=5: Drop (0.9347)</span>
                   </div>
                 </div>
               </div>
 
               {/* OLS Equation Card (CRT Terminal Font) */}
-              {(() => {
-                const currentKData = K_PROGRESSION_DATA.find(d => d.k === selectedK) || K_PROGRESSION_DATA[1];
+              {currentMethodKey === 'Compare_All' ? (
+                <div className="bg-[#020704] border-2 border-[#005522] p-3 text-emerald-400 font-mono shadow-[inset_0_0_20px_rgba(0,255,102,0.15)] relative">
+                  <div className="flex justify-between text-xs border-b border-[#004d1f] pb-1 mb-2">
+                    <span>TERMINAL: 5_METHOD_COMPARISON_MATRIX // k = {selectedK}</span>
+                    <span className="text-cyan-300 font-bold">[MULTI-ALGORITHM EVALUATION]</span>
+                  </div>
+                  <div className="overflow-x-auto text-[11px] mb-2">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-[#00441a] text-slate-400">
+                          <th className="p-1">METHOD</th>
+                          <th className="p-1">SUBSET</th>
+                          <th className="p-1">TEST RMSE</th>
+                          <th className="p-1">TEST R²</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {['LassoCV', 'Forward_SFS', 'RFECV', 'ElasticNetCV', 'Exhaustive'].map(mk => {
+                          const item = METHOD_PROGRESSIONS_DATA[mk].items.find(p => p.k === selectedK);
+                          const isTop = (selectedK === 3 && mk === 'Exhaustive') || (selectedK === 2 && mk === 'Forward_SFS');
+                          return (
+                            <tr key={mk} className={`border-b border-slate-900 ${isTop ? 'bg-emerald-950/30' : ''}`}>
+                              <td className="p-1 font-bold" style={{ color: METHOD_PROGRESSIONS_DATA[mk].color }}>{METHOD_PROGRESSIONS_DATA[mk].symbol} {METHOD_PROGRESSIONS_DATA[mk].name}</td>
+                              <td className="p-1 text-slate-200">[{item.features.join(', ')}]</td>
+                              <td className={`p-1 ${isTop ? 'text-emerald-400 font-bold' : 'text-slate-300'}`}>${item.rmse.toFixed(2)}</td>
+                              <td className="p-1 text-[#ccff00]">{item.r2.toFixed(4)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="text-[11px] text-emerald-300/80 italic pt-1 border-t border-[#00441a]">
+                    {selectedK === 2 ? '★ Consensus at k=2: All 5 algorithms identify R&D + Marketing as optimal.' : (selectedK === 3 ? '★ Divergence at k=3: Exhaustive discovers [R&D, Admin, FL] with global minimum RMSE ($8,171.65).' : 'Notice algorithms diverge on geographic dummy inclusion before collectively overfitting at k=5.')}
+                  </p>
+                </div>
+              ) : (() => {
+                const currentKData = activeMethodProgression.find(d => d.k === selectedK) || activeMethodProgression[1];
                 return (
                   <div className="bg-[#020704] border-2 border-[#005522] p-3 text-emerald-400 font-mono shadow-[inset_0_0_20px_rgba(0,255,102,0.15)] relative">
                     <div className="flex justify-between text-xs border-b border-[#004d1f] pb-1 mb-2">
