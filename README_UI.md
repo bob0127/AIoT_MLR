@@ -31,7 +31,23 @@ This Web UI/UX is built specifically for the **50 Startups Profit Prediction & F
 - **Dynamic LED Flags**: Real-time pixel LEDs switch green/red as you toggle methods to indicate which feature inputs are active.
 - **Hyperparameter Sliders**: Interactive Train/Test Split (60%–90%) and Cross-Validation folds ($k=3$ to $k=10$).
 
-### 3. Actual vs. Predicted Profit Scatter & Arcade High Scores
+### 3. k-Value Selector Tabs & Model Performance Window (`MODEL_PERFORMANCE_MONITOR.EXE`)
+- **k-Value Selector Tabs ($k=1 \dots 5$)**:
+  - Designed as vintage Windows 95 / media player control buttons with 3D bevels and sound effects.
+  - **$k=2$ (★ Optimal Sweet Spot)** highlighted in glowing emerald green with pulsing matrix glow.
+  - **$k=5$ (⚠ Full Model / Overfitting Cliff)** tagged with an amber warning style and hazard border.
+- **Dual Line Charts**:
+  - Side-by-side high-DPI HTML5 canvas charts tracking metric trajectories from $k=1$ to $k=5$:
+    - **RMSE Trend (Lower is Better)**: Pinpoints the global minimum error ($8,198.80) at $k=2$ with glowing emerald star marker, and highlights the overfitting cliff at $k=5$ ($9,137.99).
+    - **R-squared Trend (Higher is Better)**: Displays explanatory power peaking at $R^2 = 0.9474$ at $k=2$.
+  - Interactive crosshairs and rich tooltips upon hover or click.
+- **OLS Equation Card**:
+  - Renders the exact fitted regression formula in green-phosphor CRT Terminal font (`VT323` / `Share Tech Mono`) with syntax-highlighted intercept, slopes, and variable tokens:
+    $$\text{k=2: Profit} = \$46,346.34 + 0.7886 \times (\text{R\&D}) + 0.0326 \times (\text{Mkt})$$
+  - Dynamic diagnostic telemetry explains why $k=2$ achieves maximum parsimony (Occam's Razor) while $k=5$ captures noise from geographical dummies.
+  - **⚡ SYNC TO PREDICTOR**: One-click sync button loading any evaluated $k$-subset into the profit predictor.
+
+### 4. Actual vs. Predicted Profit Scatter & Arcade High Scores
 - **Actual vs. Predicted Plot**: HTML5 Canvas radar grid displaying the 10 test startups against the ideal $45^\circ$ line. Hovering over any point displays its startup ID, state, actual profit, predicted profit, and residual offset.
 - **High Score Leaderboard**: Arcade leaderboard comparing CV RMSE ranking across methods.
 

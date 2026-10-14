@@ -123,6 +123,79 @@ const TEST_SET = [
   { id: 19, state: "New York", rd: 86419.70, admin: 153514.11, mkt: 0.0, actual: 122776.86 }
 ];
 
+const K_PROGRESSION_DATA = [
+  {
+    k: 1,
+    title: "k=1 : R&D Spend",
+    features: ["R&D Spend"],
+    rmse: 8274.87,
+    r2: 0.9465,
+    intercept: 48416.30,
+    coefs: { "R&D Spend": 0.8516 },
+    isSweetSpot: false,
+    isOverfitCliff: false,
+    label: "⏴ k=1 (R&D Only)",
+    formula: "Profit = $48,416.30 + 0.8516 × (R&D Spend)",
+    insight: "Single-variable baseline: R&D Spend alone captures 94.65% variance, showing exceptional primary correlation."
+  },
+  {
+    k: 2,
+    title: "k=2 : Optimal Sweet Spot",
+    features: ["R&D Spend", "Marketing Spend"],
+    rmse: 8198.80,
+    r2: 0.9474,
+    intercept: 46346.34,
+    coefs: { "R&D Spend": 0.7886, "Marketing Spend": 0.0326 },
+    isSweetSpot: true,
+    isOverfitCliff: false,
+    label: "★ k=2 Optimal Sweet Spot (Min RMSE)",
+    formula: "Profit = $46,346.34 + 0.7886 × (R&D Spend) + 0.0326 × (Marketing Spend)",
+    insight: "★ OPTIMAL SWEET SPOT: Minimum test RMSE ($8,198.80) & peak R² (0.9474). Maximum explanatory power without noise."
+  },
+  {
+    k: 3,
+    title: "k=3 : Standard 3-Feat",
+    features: ["R&D Spend", "Administration", "Marketing Spend"],
+    rmse: 8803.78,
+    r2: 0.9394,
+    intercept: 42989.01,
+    coefs: { "R&D Spend": 0.7788, "Administration": 0.0294, "Marketing Spend": 0.0347 },
+    isSweetSpot: false,
+    isOverfitCliff: false,
+    label: "▶ k=3 (Standard 3-Feat)",
+    formula: "Profit = $42,989.01 + 0.7788 × (R&D) + 0.0294 × (Admin) + 0.0347 × (Mkt)",
+    insight: "Parsimony degrades: Adding Admin overhead increases test RMSE by +$604.98 (to $8,803.78) with negligible predictive value."
+  },
+  {
+    k: 4,
+    title: "k=4 : + State_NY",
+    features: ["R&D Spend", "Administration", "Marketing Spend", "State_New York"],
+    rmse: 8997.20,
+    r2: 0.9367,
+    intercept: 42410.31,
+    coefs: { "R&D Spend": 0.7747, "Administration": 0.0318, "Marketing Spend": 0.0357, "State_New York": 1052.22 },
+    isSweetSpot: false,
+    isOverfitCliff: false,
+    label: "▶▶ k=4 (+ State_NY)",
+    formula: "Profit = $42,410.31 + 0.7747 × (R&D) + 0.0318 × (Admin) + 0.0357 × (Mkt) + 1,052.22 × (State_NY)",
+    insight: "Over-parameterization: State dummy has p > 0.05. Test RMSE worsens to $8,997.20 as model fits sample noise."
+  },
+  {
+    k: 5,
+    title: "k=5 : Full Model",
+    features: ["R&D Spend", "Administration", "Marketing Spend", "State_Florida", "State_New York"],
+    rmse: 9137.99,
+    r2: 0.9347,
+    intercept: 42554.17,
+    coefs: { "R&D Spend": 0.7735, "Administration": 0.0329, "Marketing Spend": 0.0366, "State_Florida": -959.28, "State_New York": 699.37 },
+    isSweetSpot: false,
+    isOverfitCliff: true,
+    label: "⚠ k=5 Full Model (Overfitting Cliff)",
+    formula: "Profit = $42,554.17 + 0.7735 × (R&D) + 0.0329 × (Admin) + 0.0366 × (Mkt) - 959.28 × (State_FL) + 699.37 × (State_NY)",
+    insight: "⚠ OVERFITTING CLIFF: Full model produces highest RMSE ($9,137.99) and lowest R² (0.9347). Redundant dummy variables."
+  }
+];
+
 export default function RetroStartupLab() {
   const [selectedModel, setSelectedModel] = useState(MODELS_DATA[0]);
   const [crtOn, setCrtOn] = useState(true);
@@ -139,7 +212,12 @@ export default function RetroStartupLab() {
   const [split, setSplit] = useState(80);
   const [cvFolds, setCvFolds] = useState(5);
 
+  // K-progression state
+  const [selectedK, setSelectedK] = useState(2);
+
   const canvasRef = useRef(null);
+  const rmseCanvasRef = useRef(null);
+  const r2CanvasRef = useRef(null);
 
   // Sound Synth Effect
   const playSfx = (freq = 440, type = 'square', duration = 0.08) => {
@@ -222,6 +300,163 @@ export default function RetroStartupLab() {
       ctx.shadowBlur = 0;
     });
   }, [selectedModel]);
+
+  // Draw Dual Line Charts for Forward SFS Progression
+  useEffect(() => {
+    // 1. RMSE Chart
+    const rmseCanvas = rmseCanvasRef.current;
+    if (rmseCanvas) {
+      const ctx = rmseCanvas.getContext('2d');
+      const w = rmseCanvas.width;
+      const h = rmseCanvas.height;
+      const padL = 48, padR = 25, padT = 25, padB = 25;
+      ctx.clearRect(0, 0, w, h);
+
+      const minY = 8000, maxY = 9300;
+      const toX = (k) => padL + ((k - 1) / 4) * (w - padL - padR);
+      const toY = (val) => (h - padB) - ((val - minY) / (maxY - minY)) * (h - padT - padB);
+
+      // Grid
+      ctx.strokeStyle = '#182438';
+      ctx.lineWidth = 1;
+      ctx.fillStyle = '#64748b';
+      ctx.font = '9px monospace';
+      for (let v = 8200; v <= 9200; v += 200) {
+        const y = toY(v);
+        ctx.beginPath();
+        ctx.moveTo(padL, y);
+        ctx.lineTo(w - padR, y);
+        ctx.stroke();
+        ctx.fillText(`$${v}`, 6, y + 3);
+      }
+      for (let k = 1; k <= 5; k++) {
+        const x = toX(k);
+        ctx.fillText(`k=${k}`, x - 8, h - 8);
+      }
+
+      // Line
+      ctx.strokeStyle = '#00f0ff';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = '#00f0ff';
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.moveTo(toX(1), toY(K_PROGRESSION_DATA[0].rmse));
+      K_PROGRESSION_DATA.forEach(d => ctx.lineTo(toX(d.k), toY(d.rmse)));
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Nodes
+      K_PROGRESSION_DATA.forEach(d => {
+        const cx = toX(d.k);
+        const cy = toY(d.rmse);
+        if (d.isSweetSpot) {
+          ctx.fillStyle = '#00ff88';
+          ctx.shadowColor = '#00ff88';
+          ctx.shadowBlur = 12;
+          ctx.beginPath();
+          ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (d.isOverfitCliff) {
+          ctx.fillStyle = '#fbbf24';
+          ctx.shadowColor = '#f59e0b';
+          ctx.shadowBlur = 10;
+          ctx.beginPath();
+          ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.fillStyle = '#00f0ff';
+          ctx.beginPath();
+          ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+        if (d.k === selectedK) {
+          ctx.strokeStyle = '#ffff00';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(cx, cy, 9, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      });
+    }
+
+    // 2. R2 Chart
+    const r2Canvas = r2CanvasRef.current;
+    if (r2Canvas) {
+      const ctx = r2Canvas.getContext('2d');
+      const w = r2Canvas.width;
+      const h = r2Canvas.height;
+      const padL = 48, padR = 25, padT = 25, padB = 25;
+      ctx.clearRect(0, 0, w, h);
+
+      const minY = 0.930, maxY = 0.950;
+      const toX = (k) => padL + ((k - 1) / 4) * (w - padL - padR);
+      const toY = (val) => (h - padB) - ((val - minY) / (maxY - minY)) * (h - padT - padB);
+
+      // Grid
+      ctx.strokeStyle = '#182438';
+      ctx.lineWidth = 1;
+      ctx.fillStyle = '#64748b';
+      ctx.font = '9px monospace';
+      for (let v = 0.932; v <= 0.948; v += 0.004) {
+        const y = toY(v);
+        ctx.beginPath();
+        ctx.moveTo(padL, y);
+        ctx.lineTo(w - padR, y);
+        ctx.stroke();
+        ctx.fillText(v.toFixed(3), 6, y + 3);
+      }
+      for (let k = 1; k <= 5; k++) {
+        const x = toX(k);
+        ctx.fillText(`k=${k}`, x - 8, h - 8);
+      }
+
+      // Line
+      ctx.strokeStyle = '#ff007f';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = '#ff007f';
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.moveTo(toX(1), toY(K_PROGRESSION_DATA[0].r2));
+      K_PROGRESSION_DATA.forEach(d => ctx.lineTo(toX(d.k), toY(d.r2)));
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Nodes
+      K_PROGRESSION_DATA.forEach(d => {
+        const cx = toX(d.k);
+        const cy = toY(d.r2);
+        if (d.isSweetSpot) {
+          ctx.fillStyle = '#00ff88';
+          ctx.shadowColor = '#00ff88';
+          ctx.shadowBlur = 12;
+          ctx.beginPath();
+          ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (d.isOverfitCliff) {
+          ctx.fillStyle = '#fbbf24';
+          ctx.shadowColor = '#f59e0b';
+          ctx.shadowBlur = 10;
+          ctx.beginPath();
+          ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.fillStyle = '#ff007f';
+          ctx.beginPath();
+          ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+        if (d.k === selectedK) {
+          ctx.strokeStyle = '#ffff00';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(cx, cy, 9, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      });
+    }
+  }, [selectedK]);
 
   return (
     <div className="min-h-screen bg-[#07090f] text-slate-100 font-mono relative p-4 sm:p-6 overflow-x-hidden">
@@ -333,6 +568,110 @@ export default function RetroStartupLab() {
         {/* Center / Right: Predictor & Charts */}
         <div className="lg:col-span-2 space-y-6">
           
+          {/* MODEL PERFORMANCE WINDOW (Dual Line Charts & OLS Equation Card) */}
+          <div className="bg-[#c0c4ce] text-black border-t-2 border-l-2 border-white border-r-2 border-b-2 border-[#404040] shadow-[4px_4px_0px_#000]">
+            <div className="bg-gradient-to-r from-[#0f2c42] via-[#086972] to-[#00a896] text-white px-2 py-1 text-xs font-bold flex justify-between items-center">
+              <span>📊 MODEL_PERFORMANCE_MONITOR.EXE // Forward SFS Progression (k = 1...5)</span>
+              <div className="flex gap-1">
+                <span className="w-3 h-3 bg-slate-300 text-black text-[9px] text-center leading-3 border border-white">_</span>
+                <span className="w-3 h-3 bg-slate-300 text-black text-[9px] text-center leading-3 border border-white">&times;</span>
+              </div>
+            </div>
+
+            <div className="p-3 bg-[#111522] text-white space-y-3">
+              
+              {/* k-Value Selector Tabs (Vintage Media Player / Windows 95 controls) */}
+              <div className="bg-[#141926] border border-slate-700 p-2 flex flex-wrap items-center gap-2">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mr-1">⏵ K-SELECTOR:</span>
+                <div className="flex flex-wrap gap-2 flex-1">
+                  {K_PROGRESSION_DATA.map(d => {
+                    const isSelected = d.k === selectedK;
+                    let btnStyle = "border-t-2 border-l-2 border-r-2 border-b-2 px-2.5 py-1.5 text-[10px] font-bold cursor-pointer transition-all flex items-center gap-1.5 shadow-[1px_1px_0px_#000] ";
+                    if (d.isSweetSpot) {
+                      btnStyle += isSelected 
+                        ? "bg-[#032010] text-white border-[#00ff88] shadow-[inset_0_0_10px_#00ff88,0_0_15px_#00ff88]" 
+                        : "bg-gradient-to-b from-[#093b1d] to-[#041c0e] text-[#00ff88] border-[#00ff88] shadow-[0_0_10px_rgba(0,255,102,0.4)] hover:brightness-125";
+                    } else if (d.isOverfitCliff) {
+                      btnStyle += isSelected
+                        ? "bg-[#200d02] text-white border-[#f59e0b] shadow-[inset_0_0_10px_#f59e0b,0_0_15px_#f59e0b]"
+                        : "bg-gradient-to-b from-[#442207] to-[#291202] text-[#fbbf24] border-[#f59e0b] shadow-[0_0_8px_rgba(245,158,11,0.35)] hover:brightness-125";
+                    } else {
+                      btnStyle += isSelected
+                        ? "bg-[#a2a6b2] text-black border-slate-700 translate-x-[1px] translate-y-[1px] shadow-none"
+                        : "bg-[#c0c4ce] text-black border-white border-r-[#404040] border-b-[#404040] hover:bg-[#d5d9e4]";
+                    }
+                    return (
+                      <button
+                        key={d.k}
+                        onClick={() => { setSelectedK(d.k); playSfx(d.isSweetSpot ? 880 : 500); }}
+                        className={btnStyle}
+                      >
+                        {d.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Dual Line Charts */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* RMSE Chart */}
+                <div className="bg-[#080b13] border border-slate-800 p-2.5 flex flex-col">
+                  <div className="flex justify-between items-center text-xs mb-1">
+                    <span className="text-cyan-400 font-bold">RMSE TREND (k=1..5)</span>
+                    <span className="text-[9px] bg-cyan-950 text-cyan-300 border border-cyan-500/50 px-1 rounded">LOWER IS BETTER</span>
+                  </div>
+                  <canvas ref={rmseCanvasRef} width={340} height={180} className="w-full h-auto bg-[#05070e] border border-slate-900" />
+                  <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+                    <span className="text-emerald-400">★ k=2: Min RMSE ($8,199)</span>
+                    <span className="text-amber-400">⚠ k=5: Cliff ($9,138)</span>
+                  </div>
+                </div>
+
+                {/* R-squared Chart */}
+                <div className="bg-[#080b13] border border-slate-800 p-2.5 flex flex-col">
+                  <div className="flex justify-between items-center text-xs mb-1">
+                    <span className="text-[#ccff00] font-bold">R-SQUARED TREND (k=1..5)</span>
+                    <span className="text-[9px] bg-yellow-950 text-yellow-300 border border-yellow-500/50 px-1 rounded">HIGHER IS BETTER</span>
+                  </div>
+                  <canvas ref={r2CanvasRef} width={340} height={180} className="w-full h-auto bg-[#05070e] border border-slate-900" />
+                  <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+                    <span className="text-emerald-400">★ k=2: Peak R² (0.9474)</span>
+                    <span className="text-amber-400">⚠ k=5: Drop (0.9347)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* OLS Equation Card (CRT Terminal Font) */}
+              {(() => {
+                const currentKData = K_PROGRESSION_DATA.find(d => d.k === selectedK) || K_PROGRESSION_DATA[1];
+                return (
+                  <div className="bg-[#020704] border-2 border-[#005522] p-3 text-emerald-400 font-mono shadow-[inset_0_0_20px_rgba(0,255,102,0.15)] relative">
+                    <div className="flex justify-between text-xs border-b border-[#004d1f] pb-1 mb-2">
+                      <span>TERMINAL: OLS_REGRESSION_EQUATION // k = {currentKData.k}</span>
+                      <span className={currentKData.isSweetSpot ? "text-emerald-300 font-bold" : (currentKData.isOverfitCliff ? "text-amber-400 font-bold" : "text-cyan-300")}>
+                        {currentKData.isSweetSpot ? "[★ OPTIMAL SWEET SPOT]" : (currentKData.isOverfitCliff ? "[⚠ OVERFITTING CLIFF]" : `[k=${currentKData.k}]`)}
+                      </span>
+                    </div>
+
+                    <div className="text-sm sm:text-base font-bold text-white drop-shadow-[0_0_8px_#00ff66] bg-[#00140a] p-2 border border-[#00441a] mb-2 leading-relaxed">
+                      {currentKData.formula}
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between text-xs pt-1 border-t border-[#00441a] text-slate-400 gap-2">
+                      <div>
+                        <span>RMSE: <b className="text-emerald-400">${currentKData.rmse.toFixed(2)}</b></span>
+                        <span className="ml-3">R²: <b className="text-[#ccff00]">{currentKData.r2.toFixed(4)}</b></span>
+                      </div>
+                      <p className="text-[11px] text-emerald-300/80 italic">{currentKData.insight}</p>
+                    </div>
+                  </div>
+                );
+              })()}
+
+            </div>
+          </div>
+
           {/* Arcade Machine Calculator */}
           <div className="bg-[#111422] border-2 border-[#ff007f] p-4 shadow-[0_0_15px_rgba(255,0,127,0.3)]">
             <div className="bg-[#02140c] border border-[#006629] p-3 text-[#00ff66] mb-4 shadow-inner">
