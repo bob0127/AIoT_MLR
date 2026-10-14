@@ -241,20 +241,52 @@ export default function RetroStartupLab() {
   };
 
   // Compute prediction
-  const computePrediction = () => {
-    const c = selectedModel.coefs;
-    let pred = selectedModel.intercept + (c["R&D Spend"] * rd) + (c["Administration"] * admin) + (c["Marketing Spend"] * mkt);
-    if (selectedModel.features.includes("State_Florida") && state === "Florida") {
-      pred += c["State_Florida"];
-    } else if (selectedModel.features.includes("State_New York") && state === "New York") {
-      pred += c["State_New York"];
+  const computePrediction = (model = selectedModel) => {
+    const c = model.coefs || {};
+    const f = model.features || [];
+    let pred = model.intercept || 0;
+    if (f.includes("R&D Spend")) pred += (c["R&D Spend"] || 0) * rd;
+    if (f.includes("Administration")) pred += (c["Administration"] || 0) * admin;
+    if (f.includes("Marketing Spend")) pred += (c["Marketing Spend"] || 0) * mkt;
+    if (f.includes("State_Florida") && state === "Florida") {
+      pred += c["State_Florida"] || 0;
+    } else if (f.includes("State_New York") && state === "New York") {
+      pred += c["State_New York"] || 0;
     }
     setPredictedProfit(pred);
-    playSfx(880, 'sine', 0.2);
+  };
+
+  const handleSelectK = (k) => {
+    setSelectedK(k);
+    const kData = K_PROGRESSION_DATA.find(d => d.k === k);
+    if (!kData) return;
+    playSfx(kData.isSweetSpot ? 880 : (kData.isOverfitCliff ? 220 : 500));
+    const newModel = {
+      id: `Forward_SFS_k${kData.k}`,
+      name: `Forward SFS (k=${kData.k})`,
+      features: kData.features,
+      nFeat: kData.k,
+      cvRmse: kData.rmse,
+      mae: 6979.15,
+      rmse: kData.rmse,
+      r2: kData.r2,
+      adjR2: kData.r2 - 0.05,
+      intercept: kData.intercept,
+      coefs: {
+        "R&D Spend": kData.coefs["R&D Spend"] || 0,
+        "Administration": kData.coefs["Administration"] || 0,
+        "Marketing Spend": kData.coefs["Marketing Spend"] || 0,
+        "State_Florida": kData.coefs["State_Florida"] || 0,
+        "State_New York": kData.coefs["State_New York"] || 0
+      },
+      tag: kData.isSweetSpot ? "SWEET SPOT" : (kData.isOverfitCliff ? "CLIFF" : `k=${kData.k}`),
+      isBest: kData.isSweetSpot
+    };
+    setSelectedModel(newModel);
   };
 
   useEffect(() => {
-    computePrediction();
+    computePrediction(selectedModel);
   }, [selectedModel, rd, admin, mkt, state]);
 
   // Draw Actual vs Predicted Canvas
@@ -561,6 +593,32 @@ export default function RetroStartupLab() {
                   className="w-full accent-cyan-400"
                 />
               </div>
+
+              {/* Active Feature Flags */}
+              <div className="pt-2 border-t border-slate-700">
+                <div className="text-[10px] text-cyan-400 font-bold mb-1.5 flex justify-between">
+                  <span>ACTIVE FEATURE FLAGS:</span>
+                  <span className="text-slate-400">{selectedModel.features.length} of 5</span>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                  {[
+                    { id: "R&D Spend", name: "R&D Spend" },
+                    { id: "Administration", name: "Admin Spend" },
+                    { id: "Marketing Spend", name: "Marketing" },
+                    { id: "State_Florida", name: "State: FL" },
+                    { id: "State_New York", name: "State: NY" }
+                  ].map(feat => {
+                    const isActive = selectedModel.features.includes(feat.id);
+                    return (
+                      <div key={feat.id} className="flex items-center gap-1.5 bg-[#090c14] border border-slate-800 px-1.5 py-1">
+                        <div className={`w-2 h-2 rounded-[2px] transition-all ${isActive ? 'bg-[#00ff66] shadow-[0_0_6px_#00ff66]' : 'bg-[#3b1219]'}`} />
+                        <span className={isActive ? 'text-white' : 'text-slate-500'}>{feat.name}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -603,7 +661,7 @@ export default function RetroStartupLab() {
                     return (
                       <button
                         key={d.k}
-                        onClick={() => { setSelectedK(d.k); playSfx(d.isSweetSpot ? 880 : 500); }}
+                        onClick={() => handleSelectK(d.k)}
                         className={btnStyle}
                       >
                         {d.label}

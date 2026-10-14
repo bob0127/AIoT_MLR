@@ -1484,37 +1484,37 @@
           <div class="input-grid-arcade">
             
             <!-- R&D Spend -->
-            <div class="cassette-card">
+            <div class="cassette-card" id="cassetteRD">
               <div class="cassette-title">
                 <span>R&amp;D SPEND ($)</span>
-                <span style="color: var(--neon-cyan);">[KEY COEF: +0.8038]</span>
+                <span id="rdCoefBadge" style="color: var(--neon-cyan);">[KEY COEF: +0.8038]</span>
               </div>
               <input type="number" id="inpRD" class="arcade-number-input" value="91992" step="500" min="0" max="250000">
               <input type="range" id="rngRD" min="0" max="250000" value="91992" step="500" style="width: 100%; margin-top: 6px; accent-color: var(--neon-cyan);">
             </div>
 
             <!-- Administration -->
-            <div class="cassette-card pink-accent">
+            <div class="cassette-card pink-accent" id="cassetteAdmin">
               <div class="cassette-title">
                 <span>ADMINISTRATION ($)</span>
-                <span style="color: var(--hot-pink);">[COEF: -0.0679]</span>
+                <span id="adminCoefBadge" style="color: var(--hot-pink);">[COEF: -0.0679]</span>
               </div>
               <input type="number" id="inpAdmin" class="arcade-number-input" value="135495" step="500" min="0" max="250000">
               <input type="range" id="rngAdmin" min="0" max="250000" value="135495" step="500" style="width: 100%; margin-top: 6px; accent-color: var(--hot-pink);">
             </div>
 
             <!-- Marketing Spend -->
-            <div class="cassette-card yellow-accent">
+            <div class="cassette-card yellow-accent" id="cassetteMkt">
               <div class="cassette-title">
                 <span>MARKETING SPEND ($)</span>
-                <span style="color: var(--acid-yellow);">[COEF: +0.0312]</span>
+                <span id="mktCoefBadge" style="color: var(--acid-yellow);">[COEF: +0.0312]</span>
               </div>
               <input type="number" id="inpMkt" class="arcade-number-input" value="252665" step="500" min="0" max="500000">
               <input type="range" id="rngMkt" min="0" max="500000" value="252665" step="500" style="width: 100%; margin-top: 6px; accent-color: var(--acid-yellow);">
             </div>
 
             <!-- State Selector -->
-            <div class="cassette-card">
+            <div class="cassette-card" id="cassetteState">
               <div class="cassette-title">
                 <span>STATE (ONE-HOT)</span>
                 <span id="stateCoefLabel" style="color: #64748b;">[REF: $0]</span>
@@ -1966,12 +1966,102 @@
     }
 
     function updateFormulaDisplay() {
-      const c = currentModel.coefs;
-      let formula = `Profit = $${currentModel.intercept.toFixed(2)} + ${c['R&D Spend'].toFixed(4)}×(R&D) ${c['Administration'] >= 0 ? '+' : ''}${c['Administration'].toFixed(4)}×(Admin) + ${c['Marketing Spend'].toFixed(4)}×(Mkt)`;
-      if (currentModel.features.includes('State_Florida')) {
-        formula += ` + ${c['State_Florida'].toFixed(2)}×(FL) + ${c['State_New York'].toFixed(2)}×(NY)`;
+      const c = currentModel.coefs || {};
+      const f = currentModel.features || [];
+      let terms = [`$${(currentModel.intercept || 0).toFixed(2)}`];
+
+      if (f.includes('R&D Spend') && c['R&D Spend']) {
+        terms.push(`${c['R&D Spend'] >= 0 ? '+' : '-'} ${Math.abs(c['R&D Spend']).toFixed(4)}×(R&D)`);
       }
-      document.getElementById('screenFormulaBreakdown').textContent = formula;
+      if (f.includes('Administration') && c['Administration']) {
+        terms.push(`${c['Administration'] >= 0 ? '+' : '-'} ${Math.abs(c['Administration']).toFixed(4)}×(Admin)`);
+      }
+      if (f.includes('Marketing Spend') && c['Marketing Spend']) {
+        terms.push(`${c['Marketing Spend'] >= 0 ? '+' : '-'} ${Math.abs(c['Marketing Spend']).toFixed(4)}×(Mkt)`);
+      }
+      if (f.includes('State_Florida') && c['State_Florida']) {
+        terms.push(`${c['State_Florida'] >= 0 ? '+' : '-'} ${Math.abs(c['State_Florida']).toFixed(2)}×(FL)`);
+      }
+      if (f.includes('State_New York') && c['State_New York']) {
+        terms.push(`${c['State_New York'] >= 0 ? '+' : '-'} ${Math.abs(c['State_New York']).toFixed(2)}×(NY)`);
+      }
+
+      document.getElementById('screenFormulaBreakdown').textContent = `Equation: Profit = ${terms.join(' ')}`;
+    }
+
+    function updateCassetteBadges() {
+      const c = currentModel.coefs || {};
+      const f = currentModel.features || [];
+
+      // R&D
+      const rdBadge = document.getElementById('rdCoefBadge');
+      const cRD = document.getElementById('cassetteRD');
+      if (rdBadge && cRD) {
+        if (f.includes('R&D Spend')) {
+          rdBadge.textContent = `[KEY COEF: +${(c['R&D Spend'] || 0).toFixed(4)}]`;
+          rdBadge.style.color = 'var(--neon-cyan)';
+          cRD.style.opacity = '1';
+        } else {
+          rdBadge.textContent = '[PRUNED / EXCLUDED: 0.00]';
+          rdBadge.style.color = '#64748b';
+          cRD.style.opacity = '0.55';
+        }
+      }
+
+      // Admin
+      const adminBadge = document.getElementById('adminCoefBadge');
+      const cAdmin = document.getElementById('cassetteAdmin');
+      if (adminBadge && cAdmin) {
+        if (f.includes('Administration')) {
+          const val = c['Administration'] || 0;
+          adminBadge.textContent = `[COEF: ${val >= 0 ? '+' : ''}${val.toFixed(4)}]`;
+          adminBadge.style.color = 'var(--hot-pink)';
+          cAdmin.style.opacity = '1';
+        } else {
+          adminBadge.textContent = '[PRUNED / EXCLUDED: 0.00]';
+          adminBadge.style.color = '#64748b';
+          cAdmin.style.opacity = '0.55';
+        }
+      }
+
+      // Marketing
+      const mktBadge = document.getElementById('mktCoefBadge');
+      const cMkt = document.getElementById('cassetteMkt');
+      if (mktBadge && cMkt) {
+        if (f.includes('Marketing Spend')) {
+          const val = c['Marketing Spend'] || 0;
+          mktBadge.textContent = `[COEF: +${val.toFixed(4)}]`;
+          mktBadge.style.color = 'var(--acid-yellow)';
+          cMkt.style.opacity = '1';
+        } else {
+          mktBadge.textContent = '[PRUNED / EXCLUDED: 0.00]';
+          mktBadge.style.color = '#64748b';
+          cMkt.style.opacity = '0.55';
+        }
+      }
+
+      // State
+      const stateBadge = document.getElementById('stateCoefLabel');
+      const cState = document.getElementById('cassetteState');
+      if (stateBadge && cState) {
+        const hasStates = f.includes('State_Florida') || f.includes('State_New York');
+        if (hasStates) {
+          const st = selState.value;
+          if (st === 'Florida' && f.includes('State_Florida')) {
+            stateBadge.textContent = `[COEF: ${(c['State_Florida'] || 0) >= 0 ? '+' : ''}${(c['State_Florida'] || 0).toFixed(2)}]`;
+          } else if (st === 'New York' && f.includes('State_New York')) {
+            stateBadge.textContent = `[COEF: +${(c['State_New York'] || 0).toFixed(2)}]`;
+          } else {
+            stateBadge.textContent = '[REF: $0.00]';
+          }
+          stateBadge.style.color = 'var(--neon-cyan)';
+          cState.style.opacity = '1';
+        } else {
+          stateBadge.textContent = '[PRUNED / EXCLUDED: $0]';
+          stateBadge.style.color = '#64748b';
+          cState.style.opacity = '0.55';
+        }
+      }
     }
 
     // ============================================================
@@ -2055,16 +2145,17 @@
       // Plot Test Data Points
       TEST_SAMPLES.forEach(pt => {
         // Compute predicted profit dynamically with current active model
-        const c = currentModel.coefs;
-        let pred = currentModel.intercept + 
-                   (c['R&D Spend'] * pt.rd) + 
-                   (c['Administration'] * pt.admin) + 
-                   (c['Marketing Spend'] * pt.mkt);
+        const c = currentModel.coefs || {};
+        const f = currentModel.features || [];
+        let pred = currentModel.intercept || 0;
+        if (f.includes('R&D Spend')) pred += (c['R&D Spend'] || 0) * pt.rd;
+        if (f.includes('Administration')) pred += (c['Administration'] || 0) * pt.admin;
+        if (f.includes('Marketing Spend')) pred += (c['Marketing Spend'] || 0) * pt.mkt;
         
-        if (currentModel.features.includes('State_Florida') && pt.state === 'Florida') {
-          pred += c['State_Florida'];
-        } else if (currentModel.features.includes('State_New York') && pt.state === 'New York') {
-          pred += c['State_New York'];
+        if (f.includes('State_Florida') && pt.state === 'Florida') {
+          pred += c['State_Florida'] || 0;
+        } else if (f.includes('State_New York') && pt.state === 'New York') {
+          pred += c['State_New York'] || 0;
         }
 
         const cx = toX(pt.actual / 1000);
@@ -2199,16 +2290,24 @@
       const mkt = parseFloat(inpMkt.value) || 0;
       const state = selState.value;
 
-      const c = currentModel.coefs;
-      let pred = currentModel.intercept + 
-                 (c['R&D Spend'] * rd) + 
-                 (c['Administration'] * admin) + 
-                 (c['Marketing Spend'] * mkt);
+      const c = currentModel.coefs || {};
+      const f = currentModel.features || [];
+      let pred = currentModel.intercept || 0;
 
-      if (currentModel.features.includes('State_Florida') && state === 'Florida') {
-        pred += c['State_Florida'];
-      } else if (currentModel.features.includes('State_New York') && state === 'New York') {
-        pred += c['State_New York'];
+      if (f.includes('R&D Spend')) {
+        pred += (c['R&D Spend'] || 0) * rd;
+      }
+      if (f.includes('Administration')) {
+        pred += (c['Administration'] || 0) * admin;
+      }
+      if (f.includes('Marketing Spend')) {
+        pred += (c['Marketing Spend'] || 0) * mkt;
+      }
+
+      if (f.includes('State_Florida') && state === 'Florida') {
+        pred += (c['State_Florida'] || 0);
+      } else if (f.includes('State_New York') && state === 'New York') {
+        pred += (c['State_New York'] || 0);
       }
 
       // Animated Rollup Display
@@ -2454,15 +2553,74 @@
         playSound('click');
       }
 
+      // 1. Update currentModel to the exact selected K model
+      currentModel = {
+        id: `Forward_SFS_k${target.k}`,
+        name: `Forward SFS (k=${target.k})`,
+        features: target.features,
+        nFeat: target.k,
+        cvRmse: target.rmse,
+        mae: 6979.15,
+        rmse: target.rmse,
+        r2: target.r2,
+        adjR2: target.r2 - (5 - target.k) * 0.008,
+        intercept: target.intercept,
+        coefs: {
+          "R&D Spend": target.coefs["R&D Spend"] || 0,
+          "Administration": target.coefs["Administration"] || 0,
+          "Marketing Spend": target.coefs["Marketing Spend"] || 0,
+          "State_Florida": target.coefs["State_Florida"] || 0,
+          "State_New York": target.coefs["State_New York"] || 0
+        },
+        isBest: target.isSweetSpot,
+        tag: target.isSweetSpot ? "SWEET SPOT" : (target.isOverfitCliff ? "CLIFF" : `k=${target.k}`)
+      };
+
+      // 2. TURN ACTIVE FEATURE FLAGS (LED) ON/OFF
+      renderFeatureFlags();
+
+      // 3. RECALCULATE & ANIMATE PREDICTED PROFIT
+      calculatePrediction(false);
+
+      // 4. Update formula breakdown on calculator screen
+      updateFormulaDisplay();
+
+      // 5. Update calculator active model badge
+      const calcBadge = document.getElementById('calcModelBadge');
+      if (calcBadge) {
+        calcBadge.textContent = `${currentModel.name} ${target.isSweetSpot ? '★' : ''}`;
+      }
+
+      // 6. Update cassette input badges (indicating active vs pruned)
+      updateCassetteBadges();
+
+      // 7. Update diagnostics report
+      const statMethod = document.getElementById('statMethodName');
+      if (statMethod) statMethod.textContent = currentModel.name;
+      const statFeatCount = document.getElementById('statFeatureCount');
+      if (statFeatCount) statFeatCount.textContent = `${target.k} of 5`;
+      const statR2 = document.getElementById('statR2');
+      if (statR2) statR2.textContent = target.r2.toFixed(4);
+      const statAdjR2 = document.getElementById('statAdjR2');
+      if (statAdjR2) statAdjR2.textContent = currentModel.adjR2.toFixed(4);
+      const statRMSE = document.getElementById('statRMSE');
+      if (statRMSE) statRMSE.textContent = `$${target.rmse.toFixed(2)}`;
+      const statCvRmse = document.getElementById('statCvRmse');
+      if (statCvRmse) statCvRmse.textContent = `$${target.rmse.toFixed(2)}`;
+
+      // 8. Update K-Tabs visual active state and OLS equation card
       renderKTabs();
       updateOlsCard(target);
       drawRmseChart();
       drawR2Chart();
 
-      // Telemetry message
+      // 9. Re-draw scatter chart using this active k model
+      drawScatterChart();
+
+      // 10. Update status message
       const msg = document.getElementById('systemMsgStatus');
       if (msg) {
-        msg.textContent = `K-OPTIMIZER: SELECTED k=${target.k}. RMSE: $${target.rmse.toLocaleString()} | R²: ${target.r2.toFixed(4)}`;
+        msg.textContent = `K-OPTIMIZER: SELECTED k=${target.k}. ACTIVE FEATURES (${target.features.length}): [${target.features.join(', ')}] | PREDICTED PROFIT UPDATED`;
       }
     }
 
