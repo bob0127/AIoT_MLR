@@ -1,6 +1,16 @@
 # 50_STARTUPS.EXE — ML Feature Selection Lab (CRISP-DM)
 ### Y2K Vintage / 90s Cyber-Studio Data Science Web UI/UX
 
+[![Live Demo](https://img.shields.io/badge/LIVE%20DEMO-bob0127.github.io%2FAIoT__MLR-00f0ff?style=for-the-badge&logo=github&logoColor=black)](https://bob0127.github.io/AIoT_MLR/)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10+-00ff66?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![UI: Retro Y2K](https://img.shields.io/badge/UI-Retro%20Y2K%20CRT-ff007f?style=for-the-badge)](https://bob0127.github.io/AIoT_MLR/)
+
+> 🚀 **Live Interactive Web App**: [https://bob0127.github.io/AIoT_MLR/](https://bob0127.github.io/AIoT_MLR/)
+
+---
+
+![50_STARTUPS.EXE Dashboard Preview](preview.png)
+
 ---
 
 ## 🕹️ Project Overview
